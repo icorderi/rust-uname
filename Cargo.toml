@@ -1,6 +1,6 @@
 [package]
 name = "uname"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Ignacio Corderi <icorderi@msn.com>"]
 
 description = "Name and information about current kernel"

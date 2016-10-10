@@ -1,7 +1,7 @@
 extern crate libc;
 
 use std::io;
-use std::ffi::CString;
+use std::ffi::CStr;
 
 use libc::{utsname, c_char};
 
@@ -17,31 +17,35 @@ pub struct Info {
 
 impl Info {
     pub fn new() -> io::Result<Self> {
-        unsafe {
-            let mut n = std::mem::zeroed();
-            if libc::uname(&mut n) == 0 {
-                Ok(From::from(n))
-            } else {
-                Err(io::Error::last_os_error())
-            }
+        let mut n = unsafe { std::mem::zeroed() };
+        let r = unsafe { libc::uname(&mut n) };
+        if r == 0 {
+            Ok(From::from(n))
+        } else {
+            Err(io::Error::last_os_error())
         }
     }
 }
 
-fn parse_or(buf: &mut [c_char], default: String) -> String {
-    unsafe { CString::from_raw(buf.as_mut_ptr()).into_string().unwrap_or(default) }
+#[inline]
+fn parse(buf: &[c_char]) -> String {
+    let s = unsafe { CStr::from_ptr(buf.as_ptr()) };
+    s.to_string_lossy().into_owned()
 }
 
 impl From<utsname> for Info {
-    fn from(mut x: utsname) -> Self {
-        Info {
-            sysname: parse_or(&mut x.sysname[..], String::default()),
-            nodename: parse_or(&mut x.nodename[..], String::default()),
-            release: parse_or(&mut x.release[..], String::default()),
-            version: parse_or(&mut x.version[..], String::default()),
-            machine: parse_or(&mut x.machine[..], String::default()),
+    fn from(x: utsname) -> Self {
+        let info = Info {
+            sysname: parse(&x.sysname[..]),
+            nodename: parse(&x.nodename[..]),
+            release: parse(&x.release[..]),
+            version: parse(&x.version[..]),
+            machine: parse(&x.machine[..]),
             _priv: (),
-        }
+        };
+        // XXX: without this we sometimes segfault on drop
+        std::mem::forget(x);
+        info
     }
 }
 
