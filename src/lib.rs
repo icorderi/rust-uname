@@ -28,24 +28,20 @@ impl Info {
 }
 
 #[inline]
-fn parse(buf: &[c_char]) -> String {
-    let s = unsafe { CStr::from_ptr(buf.as_ptr()) };
-    s.to_string_lossy().into_owned()
+fn to_cstr(buf: &[c_char]) -> &CStr {
+    unsafe { CStr::from_ptr(buf.as_ptr()) }
 }
 
 impl From<utsname> for Info {
     fn from(x: utsname) -> Self {
-        let info = Info {
-            sysname: parse(&x.sysname[..]),
-            nodename: parse(&x.nodename[..]),
-            release: parse(&x.release[..]),
-            version: parse(&x.version[..]),
-            machine: parse(&x.machine[..]),
+        Info {
+            sysname: to_cstr(&x.sysname[..]).to_string_lossy().into_owned(),
+            nodename: to_cstr(&x.nodename[..]).to_string_lossy().into_owned(),
+            release: to_cstr(&x.release[..]).to_string_lossy().into_owned(),
+            version: to_cstr(&x.version[..]).to_string_lossy().into_owned(),
+            machine: to_cstr(&x.machine[..]).to_string_lossy().into_owned(),
             _priv: (),
-        };
-        // XXX: without this we sometimes segfault on drop
-        std::mem::forget(x);
-        info
+        }
     }
 }
 
